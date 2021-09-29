@@ -80,13 +80,13 @@ ProactiveUtil::afterReceiveInterest(const  FaceEndpoint& ingress, const Interest
 
 {
 	 NS_LOG_INFO(interest.getTag<lp::HopLimitTag>());
-
+/*
   if (interest.getTag<lp::HopLimitTag>() == nullptr) {
      NS_LOG_INFO("nullptr");
 
-  }
-  if (interest.getTag<lp::HopLimitTag>() == 0) {
-      // regular interest
+  }*/
+  if (interest.getTag<lp::HopLimitTag>() == nullptr) {
+      // regular interesti
       processRegularInterest(ingress.face, interest, pitEntry);
   }
   else {
@@ -100,6 +100,7 @@ ProactiveUtil::afterReceiveNack(const FaceEndpoint& ingress, const lp::Nack& nac
                                     const shared_ptr<pit::Entry>& pitEntry)
 {
   this->processNack(ingress.face, nack, pitEntry);
+  NFD_LOG_INFO("Nack for " << nack.getInterest() << " from=" << ingress.face << " reason=" << nack.getReason()); 
 }
 
 void
@@ -147,13 +148,11 @@ ProactiveUtil::processUtilInterest(const Face& inFace, const Interest& interest,
     NFD_LOG_WARN("Util Interest with no services of utilization received");
     return;
   }
-
   for (uint8_t i = 1; i < interestName.size() - 1; i++) {
    // NFD_LOG_TEST(interestName.get(i).toUri());
     Name serviceName = Name(interestName.get(i).toUri());
-    NFD_LOG_TEST("ServiceNAme " << serviceName <<" "<<interestName.get(-1).toUri());
-
-	   // already have this service name, check inFace
+//    NFD_LOG_TEST("ServiceName " << serviceName <<" "<<interestName.get(-1).toUri());
+   // already have this service name, check inFace
     fib::Entry* fibEntry = m_forwarder.getFib().findExactMatch(serviceName);
     if (fibEntry->getNextHops().empty()) {
       ns3::ndn::FibHelper::AddRoute(m_forwarder.m_node, serviceName, inFace.getId(), std::stoi(interestName.get(-1).toUri()));
@@ -173,7 +172,7 @@ ProactiveUtil::processUtilInterest(const Face& inFace, const Interest& interest,
       if (!found)
         ns3::ndn::FibHelper::AddRoute(m_forwarder.m_node, serviceName, inFace.getId(), std::stoi(interestName.get(-1).toUri()));
     }
-//    NFD_LOG_INFO("Add Route " << interestName.get(-1).toUri());
+    NFD_LOG_INFO("Add Route: Name " << serviceName<< " ,utility " <<interestName.get(-1).toUri());
   }
 
   if (uint64_t(*interest.getTag<lp::HopLimitTag>()) == 0) {
