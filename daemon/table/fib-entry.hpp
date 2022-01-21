@@ -87,6 +87,9 @@ public:
   NextHopList::iterator
   findNextHop(const Face& face);
 
+  NextHopList::iterator
+  findNextHop(const Face& face, EndpointId endpointId);
+
 private:
   /** \brief adds a NextHop record to the entry
    *

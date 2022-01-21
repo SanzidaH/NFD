@@ -77,16 +77,16 @@ ProactiveUtil::getStrategyName()
 void
 ProactiveUtil::afterReceiveInterest(const  FaceEndpoint& ingress, const Interest& interest,
                                     const shared_ptr<pit::Entry>& pitEntry)
-
 {
-	 NS_LOG_INFO(interest.getTag<lp::HopLimitTag>());
-/*
-  if (interest.getTag<lp::HopLimitTag>() == nullptr) {
-     NS_LOG_INFO("nullptr");
-
-  }*/
-  if (interest.getTag<lp::HopLimitTag>() == nullptr) {
-      // regular interesti
+//	int hl = interest.getHopLimit().value();
+ //        NS_LOG_TEST("hoplimit "<<hl);
+//	NS_LOG_TEST(interest.getTag<lp::HopLimitTag>());
+//	 NS_LOG_TEST(interest.getName().get(0).toUri());
+ // if (interest.getTag<lp::HopLimitTag>() == nullptr) {
+    if(!interest.getHopLimit().has_value()){   
+// if((interest.getName().get(0).toUri()=="prefix1") || (interest.getName().get(0).toUri()=="prefix2")){
+ // regular interest
+  //   NS_LOG_TEST("Should enter processRegularInterest()");
       processRegularInterest(ingress.face, interest, pitEntry);
   }
   else {
@@ -100,7 +100,6 @@ ProactiveUtil::afterReceiveNack(const FaceEndpoint& ingress, const lp::Nack& nac
                                     const shared_ptr<pit::Entry>& pitEntry)
 {
   this->processNack(ingress.face, nack, pitEntry);
-  NFD_LOG_INFO("Nack for " << nack.getInterest() << " from=" << ingress.face << " reason=" << nack.getReason()); 
 }
 
 void
@@ -124,6 +123,7 @@ void
 ProactiveUtil::processRegularInterest(const Face& inFace, const Interest& interest,
                                       const shared_ptr<pit::Entry>& pitEntry)
 {
+//	NS_LOG_TEST("processRegularInterest");
  // const Face& inFace = ingress.face;
   const fib::Entry& fibEntry = this->lookupFib(*pitEntry);
   for (const auto& nexthop : fibEntry.getNextHops()) {
@@ -148,31 +148,48 @@ ProactiveUtil::processUtilInterest(const Face& inFace, const Interest& interest,
     NFD_LOG_WARN("Util Interest with no services of utilization received");
     return;
   }
-  for (uint8_t i = 1; i < interestName.size() - 1; i++) {
-   // NFD_LOG_TEST(interestName.get(i).toUri());
+
+  for (uint8_t i = 2; i < interestName.size() - 1; i++) {
+
     Name serviceName = Name(interestName.get(i).toUri());
-//    NFD_LOG_TEST("ServiceName " << serviceName <<" "<<interestName.get(-1).toUri());
-   // already have this service name, check inFace
+    // already have this service name, check inFace
     fib::Entry* fibEntry = m_forwarder.getFib().findExactMatch(serviceName);
     if (fibEntry->getNextHops().empty()) {
       ns3::ndn::FibHelper::AddRoute(m_forwarder.m_node, serviceName, inFace.getId(), std::stoi(interestName.get(-1).toUri()));
+      NS_LOG_TEST("New Route added (No nexthop) for Node " << m_forwarder.m_node << " Service: " << serviceName << " from = " << inFace.getId() << " Cost: " << std::stoi(interestName.get(-1).toUri()) );
     }
     else {
       bool found = false;
+
+ for (const auto& nexthop : fibEntry->getNextHops()) {
+        Face& outFace = nexthop.getFace();
+NS_LOG_TEST("Before Sorting Check Service: " << serviceName <<" to "<< outFace.getId() << " from " << inFace.getId() <<" Cost: " << fibEntry->findNextHop(outFace)->getCost());
+       }
+
       for (const auto& nexthop : fibEntry->getNextHops()) {
         Face& outFace = nexthop.getFace();
-        if (outFace.getId() == inFace.getId()) {
+//NS_LOG_TEST("Sorting Check before Service: " << serviceName <<" to "<< outFace.getId() << " Updated Cost: " << fibEntry->findNextHop(outFace)->getCost());
+                   
+if (outFace.getId() == inFace.getId()) {
           found = true;
-         // uint64_t endpointId = nexthop.getEndpointId();
-         // fibEntry->findNextHop(inFace, endpointId)->setCost(std::stoi(interestName.get(-1).toUri()));
-          fibEntry->findNextHop(inFace);
-	  fibEntry->sortNextHops();
+          uint64_t endpointId = nexthop.getEndpointId();
+          fibEntry->findNextHop(inFace, endpointId)->setCost(std::stoi(interestName.get(-1).toUri()));
+         //   fibEntry->findNextHop(inFace)->setCost(std::stoi(interestName.get(-1).toUri()));
+	
+           NS_LOG_TEST("Service: " << serviceName <<" from "<< inFace.getId() << " to "<< outFace.getId() << " Updated Cost: " << fibEntry->findNextHop(inFace)->getCost());
+           fibEntry->sortNextHops();
+
         }
       }
+
+ for (const auto& nexthop : fibEntry->getNextHops()) {
+        Face& outFace = nexthop.getFace();
+NS_LOG_TEST("After Sorting Check Service: " << serviceName <<" to "<< outFace.getId() << " from " << inFace.getId()  << " Updated Cost: " << fibEntry->findNextHop(outFace)->getCost());
+       }
       if (!found)
-        ns3::ndn::FibHelper::AddRoute(m_forwarder.m_node, serviceName, inFace.getId(), std::stoi(interestName.get(-1).toUri()));
-    }
-    NFD_LOG_INFO("Add Route: Name " << serviceName<< " ,utility " <<interestName.get(-1).toUri());
+      {ns3::ndn::FibHelper::AddRoute(m_forwarder.m_node, serviceName, inFace.getId(), std::stoi(interestName.get(-1).toUri()));
+            NS_LOG_TEST("New Route added for Node " << m_forwarder.m_node << " Service: " << serviceName << " from = " << inFace.getId() << " Cost: " << std::stoi(interestName.get(-1).toUri()) );
+      }    }
   }
 
   if (uint64_t(*interest.getTag<lp::HopLimitTag>()) == 0) {

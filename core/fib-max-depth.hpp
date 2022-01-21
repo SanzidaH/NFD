@@ -1,6 +1,6 @@
 /* -*- Mode:C++; c-file-style:"gnu"; indent-tabs-mode:nil; -*- */
 /*
- * Copyright (c) 2014-2019,  Regents of the University of California,
+ * Copyright (c) 2014-2018,  Regents of the University of California,
  *                           Arizona Board of Regents,
  *                           Colorado State University,
  *                           University Pierre & Marie Curie, Sorbonne University,
@@ -23,63 +23,15 @@
  * NFD, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef NFD_DAEMON_TABLE_FIB_NEXTHOP_HPP
-#define NFD_DAEMON_TABLE_FIB_NEXTHOP_HPP
-
-#include "core/common.hpp"
-#include "face/face.hpp"
+#ifndef NFD_CORE_FIB_MAX_DEPTH_HPP
+#define NFD_CORE_FIB_MAX_DEPTH_HPP
 
 namespace nfd {
-namespace fib {
 
-/** \brief Represents a nexthop record in a FIB entry
+/** \brief Maximum number of components in a FIB entry prefix.
  */
-class NextHop
-{
-public:
-  explicit
-  NextHop(Face& face)
-    : m_face(&face)
-  {
-  }
+static const int FIB_MAX_DEPTH = 32;
 
-NextHop(Face& face, EndpointId endpointId)
-    : m_face(&face)
-    , m_endpointId(endpointId)
-  {
-  }
-
-  Face&
-  getFace() const
-  {
-    return *m_face;
-  }
-
-  EndpointId
-  getEndpointId() const
-  {
-    return m_endpointId;
-  }
-
-  uint64_t
-  getCost() const
-  {
-    return m_cost;
-  }
-
-  void
-  setCost(uint64_t cost)
-  {
-    m_cost = cost;
-  }
-
-private:
-  Face* m_face; // pointer instead of reference so that NextHop is movable
-  uint64_t m_cost = 0;
-  EndpointId m_endpointId;
-};
-
-} // namespace fib
 } // namespace nfd
 
-#endif // NFD_DAEMON_TABLE_FIB_NEXTHOP_HPP
+#endif // NFD_CORE_FIB_MAX_DEPTH_HPP

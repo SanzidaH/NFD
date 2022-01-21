@@ -163,6 +163,11 @@ GenericLinkService::encodeLpFields(const ndn::PacketBase& netPkt, lp::Packet& lp
     lpPacket.add<lp::HopCountTagField>(0);
   }
 
+  shared_ptr<lp::HopLimitTag> hopLimitTag = netPkt.getTag<lp::HopLimitTag>();
+  if (hopLimitTag != nullptr) {
+    lpPacket.add<lp::HopLimitTagField>(*hopLimitTag);
+  }
+
   if (m_options.enableGeoTags) {
     auto geoTag = m_options.enableGeoTags();
     if (geoTag != nullptr) {
@@ -363,6 +368,11 @@ GenericLinkService::decodeInterest(const Block& netPkt, const lp::Packet& firstP
   if (firstPkt.has<lp::HopCountTagField>()) {
     interest->setTag(make_shared<lp::HopCountTag>(firstPkt.get<lp::HopCountTagField>() + 1));
   }
+ 
+ if (firstPkt.has<lp::HopLimitTagField>()) {
+    interest->setTag(make_shared<lp::HopLimitTag>(firstPkt.get<lp::HopLimitTagField>() - 1));
+  }
+
 
   if (m_options.enableGeoTags && firstPkt.has<lp::GeoTagField>()) {
     interest->setTag(make_shared<lp::GeoTag>(firstPkt.get<lp::GeoTagField>()));
@@ -425,6 +435,10 @@ GenericLinkService::decodeData(const Block& netPkt, const lp::Packet& firstPkt,
 
   if (firstPkt.has<lp::HopCountTagField>()) {
     data->setTag(make_shared<lp::HopCountTag>(firstPkt.get<lp::HopCountTagField>() + 1));
+  }
+
+  if (firstPkt.has<lp::HopLimitTagField>()) {
+    data->setTag(make_shared<lp::HopLimitTag>(firstPkt.get<lp::HopLimitTagField>() - 1));
   }
 
   if (m_options.enableGeoTags && firstPkt.has<lp::GeoTagField>()) {

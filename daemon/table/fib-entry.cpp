@@ -42,6 +42,15 @@ Entry::findNextHop(const Face& face)
                       });
 }
 
+NextHopList::iterator
+Entry::findNextHop(const Face& face, EndpointId endpointId)
+{
+  return std::find_if(m_nextHops.begin(), m_nextHops.end(),
+                      [&face, endpointId] (const NextHop& nexthop) {
+                        return &nexthop.getFace() == &face && nexthop.getEndpointId() == endpointId;
+                      });
+}
+
 bool
 Entry::hasNextHop(const Face& face) const
 {
