@@ -170,14 +170,16 @@ NS_LOG_TEST("Before Sorting Check Service: " << serviceName <<" to "<< outFace.g
         Face& outFace = nexthop.getFace();
 //NS_LOG_TEST("Sorting Check before Service: " << serviceName <<" to "<< outFace.getId() << " Updated Cost: " << fibEntry->findNextHop(outFace)->getCost());
                    
-if (outFace.getId() == inFace.getId()) {
-          found = true;
+if (outFace.getId() == inFace.getId()) { 
+        	found = true;
           uint64_t endpointId = nexthop.getEndpointId();
+	  if(fibEntry->findNextHop(inFace, endpointId)->getCost()!=0){
           fibEntry->findNextHop(inFace, endpointId)->setCost(std::stoi(interestName.get(-1).toUri()));
-         //   fibEntry->findNextHop(inFace)->setCost(std::stoi(interestName.get(-1).toUri()));
+        //    fibEntry->findNextHop(inFace)->setCost(std::stoi(interestName.get(-1).toUri()));
 	
            NS_LOG_TEST("Service: " << serviceName <<" from "<< inFace.getId() << " to "<< outFace.getId() << " Updated Cost: " << fibEntry->findNextHop(inFace)->getCost());
-           fibEntry->sortNextHops();
+          
+	   fibEntry->sortNextHops();}else{ NS_LOG_TEST("Internal face");}
 
         }
       }
