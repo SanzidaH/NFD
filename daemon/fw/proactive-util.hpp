@@ -65,10 +65,39 @@ public:
   processUtilInterest(const Face& inFace, const Interest& interest,
                       const shared_ptr<pit::Entry>& pitEntry);
 
+  std::vector<std::string>
+  SplitString( std::string strLine, int limit ) {
+
+        std::string str = strLine;
+        std::vector<std::string> result;
+        std::istringstream isstr( str );
+        int i = 0;
+        std::string finalStr = "";
+
+        for ( std::string str; isstr >> str;  ) {
+
+                if ( i < limit || limit == 0 ) {
+                        result.push_back( str );
+                } else {
+                        finalStr += str;
+                }
+
+                i++;
+        }
+
+        result.push_back( finalStr );
+
+        return result;
+  }
+
+ std::set<std::string> utilMap;
 private:
   friend ProcessNackTraits<ProactiveUtil>;
   RetxSuppressionExponential m_retxSuppression;
-
+  uint32_t  m_iface;
+  // std::set<std::string> utilMap;
+ // std::unordered_map<Name, std::unordered_set<uint64_t>> utilMap;
+ // std::unordered_map<Name, std::unordered_set<std:string>> utilMap;
   // next hop, util
   std::vector<std::tuple<Name, std::vector<std::tuple<FaceId, double>>>> m_utilTable;
 
