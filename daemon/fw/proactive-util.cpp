@@ -65,6 +65,7 @@ ProactiveUtil::ProactiveUtil(Forwarder& forwarder, const Name& name)
       "ProactiveUtil does not support version " + to_string(*parsed.version)));
   }
   this->setInstanceName(makeInstanceName(name, getStrategyName()));
+  prevutilcnt = 0;
 }
 
 const Name&
@@ -82,9 +83,9 @@ ProactiveUtil::afterReceiveInterest(const  FaceEndpoint& ingress, const Interest
  //        NS_LOG_TEST("hoplimit "<<hl);
 //	NS_LOG_TEST(interest.getTag<lp::HopLimitTag>());
 //	 NS_LOG_TEST(interest.getName().get(0).toUri());
- // if (interest.getTag<lp::HopLimitTag>() == nullptr) {
-    if(!interest.getHopLimit().has_value()){   
-// if((interest.getName().get(0).toUri()=="prefix1") || (interest.getName().get(0).toUri()=="prefix2")){
+  if (interest.getTag<lp::HopLimitTag>() == nullptr) {
+ //   if(!interest.getHopLimit().has_value()){   
+// if(interest.getName().get(0).toUri()=="prefix"){
  // regular interest
   //   NS_LOG_TEST("Should enter processRegularInterest()");
       processRegularInterest(ingress.face, interest, pitEntry);
@@ -99,7 +100,7 @@ void
 ProactiveUtil::afterReceiveNack(const FaceEndpoint& ingress, const lp::Nack& nack,
                                     const shared_ptr<pit::Entry>& pitEntry)
 {
-  
+ /* 
 	if (nack.getReason() == lp::NackReason::OVERLOADED) { // remove FIB entries
          const fib::Entry& fibEntry = this->lookupFib(*pitEntry);
        	 const fib::NextHopList& nexthops = fibEntry.getNextHops();
@@ -119,17 +120,19 @@ ProactiveUtil::afterReceiveNack(const FaceEndpoint& ingress, const lp::Nack& nac
 		     return;
                 }else NS_LOG_TEST("not valid outface");	
 		
-	}/*
+	}
         	if(has_candidate){
 		     NS_LOG_TEST("Forwarding Interest to " << candidateFace.getId());
 	             this->sendInterest(pitEntry, FaceEndpoint(candidateFace, 0), nack.getInterest());
 		}
 		else{
 		     this->processNack(ingress.face, nack, pitEntry);
-		}*/
+		}
         
-	}
+	}*/
 	this->processNack(ingress.face, nack, pitEntry);
+	 NS_LOG_TEST(" Nack sent  from " << ingress.face.getId() << "  name " << nack.getInterest());
+
 }
 
 void
@@ -144,7 +147,7 @@ ProactiveUtil::broadcastInterest(const Interest& interest, const FaceEndpoint& i
     }
     this->sendInterest(pitEntry,FaceEndpoint(outFace, 0), interest);
     //pitEntry->getOutRecord(outFace)->insertStrategyInfo<OutRecordInfo>().first->isNonDiscoveryInterest = false;
-    NFD_LOG_DEBUG("send Util Interest=" << interest << " from="
+    NFD_LOG_DEBUG("send Util Interest (broadcasted)=" << interest << " from="
                   << inFace.getId() << " to=" << outFace.getId());
   }
 }
@@ -153,19 +156,25 @@ void
 ProactiveUtil::processRegularInterest(const Face& inFace, const Interest& interest,
                                       const shared_ptr<pit::Entry>& pitEntry)
 {
-//	NS_LOG_TEST("processRegularInterest");
- // const Face& inFace = ingress.face;
-  const fib::Entry& fibEntry = this->lookupFib(*pitEntry);
-  for (const auto& nexthop : fibEntry.getNextHops()) {
-     Face& outFace = nexthop.getFace();
-     uint64_t cost = nexthop.getCost();
-     if(cost<10 && cost>0 && interest.getForwardingHint().empty()){
-	     continue;
-     }
-    // if(utilMap[fibEntry.getPrefix()].find(inFace.getId())== utilMap[fibEntry.getPrefix()].end()){
-    //         continue;
-   //  }
-    std::set<std::string>::iterator itr;
+// 	const Face& inFace = ingress.face;
+     const fib::Entry& fibEntry = this->lookupFib(*pitEntry);
+   //  Name serviceName = interest.getName().getSubName(1,2);
+   //  fib::Entry* fibEntry = m_forwarder.getFib().findExactMatch(serviceName);
+     /* Checking fib */
+     for (const auto& nexthop : fibEntry.getNextHops()) {
+	Face& outFace = nexthop.getFace();
+        uint64_t cost = nexthop.getCost();   
+        NS_LOG_TEST(" Regular Interest next hops select: " << fibEntry.getPrefix() <<" to "<< outFace.getId() << " from " << inFace.getId() <<" Cost: " << cost);
+       }
+
+
+     for (const auto& nexthop : fibEntry.getNextHops()) {
+             Face& outFace = nexthop.getFace();
+             uint64_t cost = nexthop.getCost();
+         if(cost<10 && cost>0 && interest.getForwardingHint().empty()){//cost<10 && 
+	        continue;
+         }
+  /*  std::set<std::string>::iterator itr;
     for (itr = utilMap.begin(); itr != utilMap.end(); itr++) {
          NS_LOG_DEBUG("Set elements: " << *itr); 
     }
@@ -176,11 +185,12 @@ ProactiveUtil::processRegularInterest(const Face& inFace, const Interest& intere
      if(utilMap.find(fibEntry.getPrefix().toUri()+":"+to_string(inFace.getId()))== utilMap.end()){
 	     NFD_LOG_TEST("not received util: "<< fibEntry.getPrefix().toUri()+":"+to_string(inFace.getId()) );
 	    //    continue;
-     }else { NFD_LOG_TEST("this face received util: "<< fibEntry.getPrefix().toUri()+":"+to_string(inFace.getId()) );}
-    if (!wouldViolateScope(inFace, interest, outFace) &&
+     }else { NFD_LOG_TEST("this face received util: "<< fibEntry.getPrefix().toUri()+":"+to_string(inFace.getId()) );}*/
+
+     if (!wouldViolateScope(inFace, interest, outFace) &&
         canForwardToLegacy(*pitEntry, outFace)) {
-      NFD_LOG_DEBUG("send regular Interest=" << interest << " from="
-                     << inFace.getId() << " to=" << outFace.getId());
+           NFD_LOG_DEBUG("send regular Interest=" << interest << " from="
+                     << inFace.getId() << " to=" << outFace.getId() <<" cost=" << cost);
      // NFD_LOG_DEBUG("PIT entry: "<< fibEntry.getPrefix());
       this->sendInterest(pitEntry, FaceEndpoint(outFace, 0), interest);
       return;
@@ -199,12 +209,12 @@ ProactiveUtil::processUtilInterest(const Face& inFace, const Interest& interest,
     return;
   }
 
-  for (uint8_t i = 2; i < interestName.size() - 1; i++) {
+  for (uint8_t i = 3; i < interestName.size() - 1; i++) {
 
     Name serviceName = Name("prefix");
     serviceName.append(interestName.get(i).toUri());
-    NS_LOG_TEST("serviceName" << serviceName);
-
+   // NS_LOG_TEST("serviceName " << serviceName);
+    bool not_internal = false; 
     // already have this service name, check inFace
     fib::Entry* fibEntry = m_forwarder.getFib().findExactMatch(serviceName);
 
@@ -214,74 +224,73 @@ ProactiveUtil::processUtilInterest(const Face& inFace, const Interest& interest,
 	    ns3::Ptr<ns3::Node>  node= ns3::NodeContainer::GetGlobal().Get( ns3::Simulator::GetContext() );
 	    ns3::ndn::FibHelper::AddRoute(node, serviceName, inFace.getId(), std::stoi(interestName.get(-1).toUri()));
     } 
-    else*/ if(fibEntry->getNextHops().empty()){
+    else*/ 
+    if(fibEntry->getNextHops().empty()){
       ns3::ndn::FibHelper::AddRoute(m_forwarder.m_node, serviceName, inFace.getId(), std::stoi(interestName.get(-1).toUri()));
-      NS_LOG_TEST("New Route added (No nexthop) for Node " << m_forwarder.m_node << " Service: " << serviceName << " from = " << inFace.getId() << " Cost: " << std::stoi(interestName.get(-1).toUri()) );
+      NS_LOG_TEST("New Route added (No nexthop found) for Node " << m_forwarder.m_node << " Service: " << serviceName << " from = " << inFace.getId() << " Cost: " << std::stoi(interestName.get(-1).toUri()) );
     }
     else {
       bool found = false;
 
- for (const auto& nexthop : fibEntry->getNextHops()) {
-        Face& outFace = nexthop.getFace();
-        NS_LOG_TEST("Before Sorting Check Service: " << serviceName <<" to "<< outFace.getId() << " from " << inFace.getId() <<" Cost: " << fibEntry->findNextHop(outFace)->getCost());
-       }
+ /*	for (const auto& nexthop : fibEntry->getNextHops()) {
+        	Face& outFace = nexthop.getFace();
+        	NS_LOG_TEST("Before Sorting Check Service: " << serviceName <<" to "<< outFace.getId() << " from " << inFace.getId() <<" Cost: " << fibEntry->findNextHop(outFace)->getCost());
+        }*/
 
- for (const auto& nexthop : fibEntry->getNextHops()) {
-     Face& outFace = nexthop.getFace();
-	if (outFace.getId() == inFace.getId()) {
-          found = true;
-          uint64_t endpointId = nexthop.getEndpointId();
- 	if(fibEntry->findNextHop(inFace, endpointId)->getCost()!=0){
-		fibEntry->findNextHop(inFace, endpointId)->setCost(std::stoi(interestName.get(-1).toUri()));
-	   
-	       	if(utilMap.find(serviceName.toUri()+":"+to_string(outFace.getId()))==utilMap.end()){
+ 	for (const auto& nexthop : fibEntry->getNextHops()) {
+     		Face& outFace = nexthop.getFace();
+		if (outFace.getId() == inFace.getId()) {
+          		found = true;
+          		uint64_t endpointId = nexthop.getEndpointId();
+ 			if(fibEntry->findNextHop(inFace, endpointId)->getCost()!=0){
+				not_internal = true;
+			   if(fibEntry->findNextHop(inFace, endpointId)->getCost()>9 && fibEntry->findNextHop(inFace, endpointId)->getCost() <  std::stoul(interestName.get(-1).toUri()) && prevutilcnt == std::stoi(interestName.get(1).toUri())){
+			   	 NS_LOG_TEST("oldcost " << fibEntry->findNextHop(inFace, endpointId)->getCost() << " < newcost " <<  std::stoul(interestName.get(-1).toUri())  << " oldutilseq " << prevutilcnt << "  == newutilseq " << std::stoi(interestName.get(1).toUri()) << " " << interestName.toUri() );
+			   }else{		 
+				fibEntry->findNextHop(inFace, endpointId)->setCost(std::stoi(interestName.get(-1).toUri()));
+	               // m_forwarder.getFib().addOrUpdateNextHop(*fibEntry, outFace, std::stoi(interestName.get(-1).toUri()));
+	  /*     	if(utilMap.find(serviceName.toUri()+":"+to_string(outFace.getId()))==utilMap.end()){
 	         NFD_LOG_TEST("Set Insert: "<< serviceName.toUri()+":"+to_string(outFace.getId()));
                       utilMap.insert(serviceName.toUri()+":"+to_string(outFace.getId()));
-		}
+		}*/
 	 //   bool tbool = utilMap.find(serviceName.toUri()+":"+to_string(outFace.getId()))==utilMap.end();
           //   std::string temp =  utilMap.find(serviceName.toUri()+":"+to_string(outFace.getId()));
 	 //    NS_LOG_TEST("Set elements: " << std::string(utilMap.find(serviceName.toUri()+":"+to_string(outFace.getId()))));
 		
          ///   fibEntry->findNextHop(inFace)->setCost(std::stoi(interestName.get(-1).toUri()));	
-          	NS_LOG_TEST("Service: " << interestName <<" from "<< inFace.getId() << " to "<< outFace.getId() << " Cost update: " << fibEntry->findNextHop(inFace)->getCost());
-		}	
+          			NS_LOG_TEST("Not internal face -> update cost: Service: " << interestName <<" from "<< inFace.getId() << " to "<< outFace.getId() << " Cost update: " << fibEntry->findNextHop(inFace)->getCost());
+			   }
+		       }	
 		fibEntry->sortNextHops();
-
-	       	std::set<std::string>::iterator itr;
-
-    for (itr = utilMap.begin(); itr != utilMap.end(); itr++) {
-         NS_LOG_DEBUG("Set elements from util: " << *itr);
-    }
-
-   // for (const auto& x: utilMap){
-//	    NS_LOG_TEST("set element from util 2" << x << "  size: " <<  utilMap.size() );
- //   }
-	}else{
+		}else{
   	 	m_iface= inFace.getId(); 
 	//	NS_LOG_TEST("Internal face" << m_iface);
-        }
+        	}
 
-  }
+  	}	
       
-
- for (const auto& nexthop : fibEntry->getNextHops()){
-        Face& outFace = nexthop.getFace();
+	if(not_internal){ //not Server
+ 	for (const auto& nexthop : fibEntry->getNextHops()){
+        	Face& outFace = nexthop.getFace();
 		NS_LOG_TEST("After Sorting Check Service: " << serviceName <<" to "<< outFace.getId() << " from " << inFace.getId()  << " Updated Cost: " << fibEntry->findNextHop(outFace)->getCost());
-      }
-      if (!found)
-      {
-		  ns3::ndn::FibHelper::AddRoute(m_forwarder.m_node, serviceName, inFace.getId(), std::stoi(interestName.get(-1).toUri()));
-          NS_LOG_TEST("New Route added for Node " << m_forwarder.m_node << " Service: " << serviceName << " from = " << inFace.getId() << " Cost: " << std::stoi(interestName.get(-1).toUri()) );
-      }      
-	}
+        } }
+        if (!found)
+        {
+		 ns3::ndn::FibHelper::AddRoute(m_forwarder.m_node, serviceName, inFace.getId(), std::stoi(interestName.get(-1).toUri()));
+          	 NS_LOG_TEST("New Route added for Node " << m_forwarder.m_node << " Service: " << serviceName << " from = " << inFace.getId() << " Cost: " << std::stoi(interestName.get(-1).toUri()) );
+        }      
+     }
   }
-  NS_LOG_TEST("HopLimit: "<<uint64_t(*interest.getTag<lp::HopLimitTag>())<<" ineterest: "<< interestName);
+  NS_LOG_TEST("HopLimit: "<<uint64_t(*interest.getTag<lp::HopLimitTag>())<<" for interest: "<< interestName);
   if (uint64_t(*interest.getTag<lp::HopLimitTag>()) == 0) {
     // interest to be discarded
     NFD_LOG_WARN("Util Interest with 0 hop limit. Will be discarded..");
     return;
   }
-
+  NS_LOG_TEST("prev util count: " << std::to_string(prevutilcnt) );
+  prevutilcnt =  std::stoi(interestName.get(1).toUri());
+  NS_LOG_TEST("prev util count: " << std::to_string(prevutilcnt) );
+  NS_LOG_TEST("Interest will be broadcasted " << interest << " from " << inFace.getId());
   broadcastInterest(interest, FaceEndpoint(inFace,0), pitEntry);
 
 }

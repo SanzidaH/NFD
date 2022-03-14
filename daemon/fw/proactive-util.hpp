@@ -92,6 +92,7 @@ public:
 
  std::set<std::string> utilMap;
 private:
+  int prevutilcnt;
   friend ProcessNackTraits<ProactiveUtil>;
   RetxSuppressionExponential m_retxSuppression;
   uint32_t  m_iface;
