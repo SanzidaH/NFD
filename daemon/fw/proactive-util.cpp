@@ -66,6 +66,11 @@ ProactiveUtil::ProactiveUtil(Forwarder& forwarder, const Name& name)
   }
   this->setInstanceName(makeInstanceName(name, getStrategyName()));
   prevutilcnt = 0;
+  pertaskcnt["/prefix/1"] = 0;
+  pertaskcnt["/prefix/2"] = 0;
+  pertaskcnt["/prefix/3"] = 0;
+  pertaskcnt["/prefix/4"] = 0;
+
 }
 
 const Name&
@@ -218,7 +223,10 @@ ProactiveUtil::processUtilInterest(const Face& inFace, const Interest& interest,
     // already have this service name, check inFace
     fib::Entry* fibEntry = m_forwarder.getFib().findExactMatch(serviceName);
 
-    NS_LOG_TEST("fibEntry " << fibEntry->getPrefix());
+  //  NS_LOG_TEST("fibEntry " << fibEntry->getPrefix());
+    int oldpertaskcnt =  pertaskcnt[fibEntry->getPrefix().toUri()];
+    int newpertaskcnt =  std::stoi(interestName.get(1).toUri()); 
+    NS_LOG_TEST("fibEntry " << fibEntry->getPrefix() << std::to_string(oldpertaskcnt)  <<" " << std::to_string(newpertaskcnt) );
    /* if (fibEntry == nullptr){
 	    NS_LOG_TEST("null fibEntry");
 	    ns3::Ptr<ns3::Node>  node= ns3::NodeContainer::GetGlobal().Get( ns3::Simulator::GetContext() );
@@ -244,7 +252,7 @@ ProactiveUtil::processUtilInterest(const Face& inFace, const Interest& interest,
           		uint64_t endpointId = nexthop.getEndpointId();
  			if(fibEntry->findNextHop(inFace, endpointId)->getCost()!=0){
 				not_internal = true;
-			   if(fibEntry->findNextHop(inFace, endpointId)->getCost()>9 && fibEntry->findNextHop(inFace, endpointId)->getCost() <  std::stoul(interestName.get(-1).toUri()) && prevutilcnt == std::stoi(interestName.get(1).toUri())){
+			   if(fibEntry->findNextHop(inFace, endpointId)->getCost()>9 && fibEntry->findNextHop(inFace, endpointId)->getCost() <  std::stoul(interestName.get(-1).toUri()) && oldpertaskcnt >= std::stoi(interestName.get(1).toUri())){
 			   	 NS_LOG_TEST("oldcost " << fibEntry->findNextHop(inFace, endpointId)->getCost() << " < newcost " <<  std::stoul(interestName.get(-1).toUri())  << " oldutilseq " << prevutilcnt << "  == newutilseq " << std::stoi(interestName.get(1).toUri()) << " " << interestName.toUri() );
 			   }else{		 
 				fibEntry->findNextHop(inFace, endpointId)->setCost(std::stoi(interestName.get(-1).toUri()));
@@ -268,7 +276,7 @@ ProactiveUtil::processUtilInterest(const Face& inFace, const Interest& interest,
         	}
 
   	}	
-      
+        pertaskcnt[fibEntry->getPrefix().toUri()]++;
 	if(not_internal){ //not Server
  	for (const auto& nexthop : fibEntry->getNextHops()){
         	Face& outFace = nexthop.getFace();

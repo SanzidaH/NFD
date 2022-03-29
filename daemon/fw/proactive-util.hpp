@@ -92,6 +92,7 @@ public:
 
  std::set<std::string> utilMap;
 private:
+  std::unordered_map<std::string, int> pertaskcnt;
   int prevutilcnt;
   friend ProcessNackTraits<ProactiveUtil>;
   RetxSuppressionExponential m_retxSuppression;
