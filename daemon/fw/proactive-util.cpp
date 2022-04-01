@@ -207,13 +207,17 @@ void
 ProactiveUtil::processUtilInterest(const Face& inFace, const Interest& interest,
                                    const shared_ptr<pit::Entry>& pitEntry)
 {
+   Name interestName = interest.getName();	
+   uint32_t newPeriod = std::stoul(interestName.get(1).toUri());
+   int newInface = inFace.getId(); 
+   uint32_t newCost = std::stoul(interestName.get(-1).toUri()); 
+   NS_LOG_TEST("newInface "<< std::to_string(newInface) << ", newperiod " << std::to_string(newPeriod) << "  interest " << interestName.toUri() ); 
  // const Face& inFace = ingress.face;
-  Name interestName = interest.getName();
   if (interestName.size() <= 1) {
     NFD_LOG_WARN("Util Interest with no services of utilization received");
     return;
   }
-
+  
   for (uint8_t i = 3; i < interestName.size() - 1; i++) {
 
     Name serviceName = Name("prefix");
@@ -222,11 +226,10 @@ ProactiveUtil::processUtilInterest(const Face& inFace, const Interest& interest,
     bool not_internal = false; 
     // already have this service name, check inFace
     fib::Entry* fibEntry = m_forwarder.getFib().findExactMatch(serviceName);
-
   //  NS_LOG_TEST("fibEntry " << fibEntry->getPrefix());
     int oldpertaskcnt =  pertaskcnt[fibEntry->getPrefix().toUri()];
     int newpertaskcnt =  std::stoi(interestName.get(1).toUri()); 
-    NS_LOG_TEST("fibEntry " << fibEntry->getPrefix() << std::to_string(oldpertaskcnt)  <<" " << std::to_string(newpertaskcnt) );
+    NS_LOG_TEST("fibEntry " << fibEntry->getPrefix()  <<" Inface:" <<  std::to_string(newInface)<<" lowestUtil[newInface]:"  << lowestUtil[newInface]  << " name:" << interestName.toUri());
    /* if (fibEntry == nullptr){
 	    NS_LOG_TEST("null fibEntry");
 	    ns3::Ptr<ns3::Node>  node= ns3::NodeContainer::GetGlobal().Get( ns3::Simulator::GetContext() );
@@ -252,10 +255,21 @@ ProactiveUtil::processUtilInterest(const Face& inFace, const Interest& interest,
           		uint64_t endpointId = nexthop.getEndpointId();
  			if(fibEntry->findNextHop(inFace, endpointId)->getCost()!=0){
 				not_internal = true;
-			   if(fibEntry->findNextHop(inFace, endpointId)->getCost()>9 && fibEntry->findNextHop(inFace, endpointId)->getCost() <  std::stoul(interestName.get(-1).toUri()) && oldpertaskcnt >= std::stoi(interestName.get(1).toUri())){
-			   	 NS_LOG_TEST("oldcost " << fibEntry->findNextHop(inFace, endpointId)->getCost() << " < newcost " <<  std::stoul(interestName.get(-1).toUri())  << " oldutilseq " << prevutilcnt << "  == newutilseq " << std::stoi(interestName.get(1).toUri()) << " " << interestName.toUri() );
-			   }else{		 
-				fibEntry->findNextHop(inFace, endpointId)->setCost(std::stoi(interestName.get(-1).toUri()));
+			  // if(fibEntry->findNextHop(inFace, endpointId)->getCost()>9 && fibEntry->findNextHop(inFace, endpointId)->getCost()
+			//		   <  std::stoul(interestName.get(-1).toUri()) && prevutilcnt >= std::stoi(interestName.get(1).toUri())){
+		               if(fibEntry->findNextHop(inFace, endpointId)->getCost()>9 && lowestUtil[newInface] == std::stoul(interestName.get(1).toUri()) 
+					       && fibEntry->findNextHop(outFace)->getCost() <  newCost){
+	                            
+				      NS_LOG_TEST2(fibEntry->findNextHop(inFace)->getCost());
+				      NS_LOG_TEST2(fibEntry->findNextHop(outFace)->getCost()); 
+		       		NS_LOG_TEST("oldcost " << fibEntry->findNextHop(outFace)->getCost() << " < newcost " <<  std::stoul(interestName.get(-1).toUri()) << " " 
+					<< std::to_string(newCost) << " " <<  std::to_string(lowestUtil[newInface]) << " ==  " << std::stoi(interestName.get(1).toUri()) << " " << interestName.toUri() );
+			   }else{
+		                //lowestUtil[newPeriod] = newCost;
+				 NS_LOG_TEST2("lowestUtil[newInface] before: " << lowestUtil[newInface]);		   
+				 lowestUtil[newInface] = newPeriod;
+				 NS_LOG_TEST2("lowestUtil[newInface] after: " << lowestUtil[newInface]);
+				 fibEntry->findNextHop(inFace, endpointId)->setCost(std::stoi(interestName.get(-1).toUri()));
 	               // m_forwarder.getFib().addOrUpdateNextHop(*fibEntry, outFace, std::stoi(interestName.get(-1).toUri()));
 	  /*     	if(utilMap.find(serviceName.toUri()+":"+to_string(outFace.getId()))==utilMap.end()){
 	         NFD_LOG_TEST("Set Insert: "<< serviceName.toUri()+":"+to_string(outFace.getId()));
