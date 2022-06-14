@@ -210,7 +210,8 @@ ProactiveUtil::processUtilInterest(const Face& inFace, const Interest& interest,
    Name interestName = interest.getName();	
    uint32_t newPeriod = std::stoul(interestName.get(1).toUri());
    int newInface = inFace.getId(); 
-   uint32_t newCost = std::stoul(interestName.get(-1).toUri()); 
+   uint32_t newCost = std::stoul(interestName.get(-1).toUri());
+   uint32_t oldCost = 0;
    NS_LOG_TEST("newInface "<< std::to_string(newInface) << ", newperiod " << std::to_string(newPeriod) << "  interest " << interestName.toUri() ); 
  // const Face& inFace = ingress.face;
   if (interestName.size() <= 1) {
@@ -257,17 +258,25 @@ ProactiveUtil::processUtilInterest(const Face& inFace, const Interest& interest,
 				not_internal = true;
 			  // if(fibEntry->findNextHop(inFace, endpointId)->getCost()>9 && fibEntry->findNextHop(inFace, endpointId)->getCost()
 			//		   <  std::stoul(interestName.get(-1).toUri()) && prevutilcnt >= std::stoi(interestName.get(1).toUri())){
-		               if(fibEntry->findNextHop(inFace, endpointId)->getCost()>9 && lowestUtil[newInface] == std::stoul(interestName.get(1).toUri()) 
-					       && fibEntry->findNextHop(outFace)->getCost() <  newCost){
+		                if( lowestCost[newInface] == 0 ){
+                                    oldCost =   fibEntry->findNextHop(outFace)->getCost();
+                                    NS_LOG_TEST("fibEntry->findNextHop(outFace)->getCost() oldcost " << oldCost); 
+				}else{ 
+				    oldCost = lowestCost[newInface];
+				     NS_LOG_TEST("lowestCost[newInface] oldcost " << oldCost);
+				}
+
+				if( oldCost>9 && lowestUtil[newInface] == std::stoul(interestName.get(1).toUri()) 
+					       && oldCost <  newCost){
 	                            
-				      NS_LOG_TEST2(fibEntry->findNextHop(inFace)->getCost());
 				      NS_LOG_TEST2(fibEntry->findNextHop(outFace)->getCost()); 
-		       		NS_LOG_TEST("oldcost " << fibEntry->findNextHop(outFace)->getCost() << " < newcost " <<  std::stoul(interestName.get(-1).toUri()) << " " 
+         		       	NS_LOG_TEST("oldcost " << fibEntry->findNextHop(outFace)->getCost() << " < newcost " <<  std::stoul(interestName.get(-1).toUri()) << " " 
 					<< std::to_string(newCost) << " " <<  std::to_string(lowestUtil[newInface]) << " ==  " << std::stoi(interestName.get(1).toUri()) << " " << interestName.toUri() );
 			   }else{
 		                //lowestUtil[newPeriod] = newCost;
 				 NS_LOG_TEST2("lowestUtil[newInface] before: " << lowestUtil[newInface]);		   
 				 lowestUtil[newInface] = newPeriod;
+				 lowestCost[newInface] = newCost;
 				 NS_LOG_TEST2("lowestUtil[newInface] after: " << lowestUtil[newInface]);
 				 fibEntry->findNextHop(inFace, endpointId)->setCost(std::stoi(interestName.get(-1).toUri()));
 	               // m_forwarder.getFib().addOrUpdateNextHop(*fibEntry, outFace, std::stoi(interestName.get(-1).toUri()));

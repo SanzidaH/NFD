@@ -95,6 +95,7 @@ private:
   std::unordered_map<std::string, int> pertaskcnt;
  // std::unordered_map<int, uint32_t> lowestUtil;//period, cost
   std::unordered_map<int, uint32_t> lowestUtil;//inface, period
+  std::unordered_map<int, uint32_t> lowestCost;//inface, cost
   int prevutilcnt;
   friend ProcessNackTraits<ProactiveUtil>;
   RetxSuppressionExponential m_retxSuppression;
